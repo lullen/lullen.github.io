@@ -15,6 +15,25 @@ public interface Hello {
 }
 {% endhighlight %}
 
+{% highlight java %}
+public class HelloServiceImpl implements Hello {
+    public Response<HelloResponse> hello(HelloRequest request) {
+        var text = String.format("Hello there {}.", request.getName());
+        var response = HelloResponse.newBuilder().setText(text).build();
+        return new Response<HelloResponse>(response);
+    }
+    
+    public Response<RespondResponse> respond(RespondRequest request) {
+        var text = String.format("{} Hello to you as well.",request.getGreeting());
+        var response = RespondResponse.newBuilder().setText(text).build();
+        return new Response<RespondResponse>(response);
+    }
+}
+{% endhighlight %}
+
+
+To call this API using the service proxy you call it as shown below.
+What is so great about this? As you can see there are no references to HTTP, gRPC or something similar. The reason for this is that when the technology changes, we do not want to modify our logic, to put it differently, we shouldn't need to know if this is going over HTTP or if it's gRPC or even an in-process call. This also makes it easier during development and test to get the application up and running as you can switch so that all calls are done in-process.
 
 {% highlight java %}
 public class TestClient {
@@ -28,22 +47,6 @@ public class TestClient {
                 return new Response<HelloResponse>(error);
             });
         return result.getText();
-    }
-}
-{% endhighlight %}
-
-{% highlight java %}
-public class HelloServiceImpl implements Hello {
-    public Response<HelloResponse> hello(HelloRequest request) {
-        var text = String.format("Hello there {}.", request.getName());
-        var response = HelloResponse.newBuild().setText(text).build();
-        return new Response<HelloResponse>(response);
-    }
-    
-    public Response<RespondResponse> respond(RespondRequest request) {
-        var text = String.format("{} Hello to you as well.",request.getGreeting());
-        var response = RespondResponse.newBuild().setText(text).build();
-        return new Response<RespondResponse>(response);
     }
 }
 {% endhighlight %}
