@@ -25,21 +25,25 @@ public class TestClient {
             .then((r) -> service.respondToHello(r.result.getText()))
             .onError((error) -> {
                 System.out.println(String.format("error: {} with message {}",error.getStatusCode(), error.getError());
+                return new Response<HelloResponse>(error);
             });
+        return result.getText();
     }
 }
 {% endhighlight %}
 
 {% highlight java %}
 public class HelloServiceImpl implements Hello {
-    public HelloResponse hello(HelloRequest request) {
+    public Response<HelloResponse> hello(HelloRequest request) {
         var text = String.format("Hello there {}.", request.getName());
-        return HelloResponse.newBuild().setText(text).build();
+        var response = HelloResponse.newBuild().setText(text).build();
+        return new Response<HelloResponse>(response);
     }
     
-    public RespondResponse respond(RespondRequest request) {
+    public Response<RespondResponse> respond(RespondRequest request) {
         var text = String.format("{} Hello to you as well.",request.getGreeting());
-        return RespondResponse.newBuild().setText(text).build();
+        var response = RespondResponse.newBuild().setText(text).build();
+        return new Response<RespondResponse>(response);
     }
 }
 {% endhighlight %}
