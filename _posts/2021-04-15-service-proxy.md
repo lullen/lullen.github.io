@@ -10,8 +10,8 @@ categories: architecture communication
 {% highlight java %}
 @ExposedService
 public interface Hello {
-    Response<HelloResponse> sayHello(HelloRequest request);
-    Response<HelloResponse> respondToHello(HelloRequest request);
+    Response<HelloResponse> hello(HelloRequest request);
+    Response<RespondResponse> respond(RespondRequest request);
 }
 {% endhighlight %}
 
@@ -22,15 +22,24 @@ public class TestClient {
         var service = ServiceProxy.create(Hello.class);
         var request = HelloRequest.newBuilder().setName(name).build();
         var result = service.sayHello(request)
-            .then((r) -> service.respondToHello(r.result.getText()));
+            .then((r) -> service.respondToHello(r.result.getText()))
+            .onError((error) -> {
+                System.out.println(String.format("error: {} with message {}",error.getStatusCode(), error.getError());
+            });
     }
 }
 {% endhighlight %}
 
 {% highlight java %}
 public class HelloServiceImpl implements Hello {
-    public String hello(String name) {
-        return String.format(name);
+    public HelloResponse hello(HelloRequest request) {
+        var text = String.format("Hello there {}.", request.getName());
+        return HelloResponse.newBuild().setText(text).build();
+    }
+    
+    public RespondResponse respond(RespondRequest request) {
+        var text = String.format("{} Hello to you as well.",request.getGreeting());
+        return RespondResponse.newBuild().setText(text).build();
     }
 }
 {% endhighlight %}
