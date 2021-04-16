@@ -57,11 +57,16 @@ To configure the server, this is what is currently needed.
 {% highlight java %}
 public static void main(String[] args) throws IOException, InterruptedException {
     var injector = Guice.createInjector(new DaprModule(), new ProxyModule());
+    
+    // Set service proxy in Dapr mode
     ServiceProxy.init(ProxyType.Dapr, injector);
 
     final var service = injector.getInstance(DaprServer.class);
-    var port = 5000;
-    service.start(port);
+    
+    // Start server on port 5000
+    service.start(5000);
+    
+    // Register all interfaces that you want to expose
     service.registerServices(List.of(Hello.class));
     service.awaitTermination();
 }
@@ -118,7 +123,7 @@ If you instead want to communicate in-process all you need to do is to change th
 public static void main(String[] args) throws Exception {
     var injector = Guice.createInjector(new ProxyModule(), new DaprModule());
 
-    // Setup service proxy to in-proc mode
+    // Set service proxy in in-proc mode
     ServiceProxy.init(ProxyType.InProc, injector);
 
     // Initialize the service loader so the proxy knows how to instantiate the services.  
