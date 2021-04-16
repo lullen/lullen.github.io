@@ -17,7 +17,7 @@ Synchronous communication is used when you want to have a direct response on a r
 When we communicate between different components we do not care, codewise, what medium for transportation we're using. If it's in-proc, HTTP or gRPC doesn't matter, our code should look the same. All we care about is that the transportation is fast and reliable. When the technology changes, as it always does, we do not want to change the whole application to support the new technology. We want to change one place where the call is happening and be fine with it. This also gives us the ability to run the application in different ways during development and testing where it could be benificial to keep the number of services running as low as possible to speed up the inner-loop and to save your precious RAM.
 
 # Implementation
-I have started to build a small library that supports this idea, while not completed it is functional enough to show how it could look like.
+I have started to build a [small library](https://github.com/lullen/service-proxy) that supports this idea, while not completed it is functional enough to show how it could look like.
 
 
 First we define an interface and tag it with the ExposedService attribute. The methods should only have one parameter and it should be an object. The return value should be of type `Response<T>`. What the `Response<T>` does is to give you a way handle exceptions and errors in a uniform way and gives you the opportunity to join calls. Both the parameter and return value must be ProtoBuf objects, this is a small code-smell that could be fixed in a future version. At the moment I have focused on getting the service proxy to work with [Dapr](https://dapr.io) and in-process but could easily be extended to support HTTP or gRPC without Dapr.
@@ -72,7 +72,20 @@ public class DaprModule extends AbstractModule {
 }
 {% endhighlight %}
 
-Now that it is implemented we can finally call it using the code below and as you can see there are no references to HTTP, gRPC or something similar.
+
+To configure the client to use the proxy, this is what is currently needed.
+
+{% highlight java %}
+public static void main(String[] args) throws Exception {
+    var injector = Guice.createInjector(new ProxyModule());
+    ServiceProxy.init(ProxyType.Dapr, injector);
+
+    var text = new TestClient().hello("Ludwig");
+    System.out.println(text);
+}
+{% endhighlight %}
+
+Now that it is implemented we can finally call it using the code below and as you can see there are no references to HTTP, gRPC or something similar. If something returns an error or exception the next then() won't be called and instead the onError method will be called with a status code and an error message. You do not need to have the onError method to catch the exception as it's done lower in code and you never need to surround the service calls with a try/catch. 
 
 {% highlight java %}
 public class TestClient {
@@ -87,17 +100,5 @@ public class TestClient {
             });
         return result.getText();
     }
-}
-{% endhighlight %}
-
-To configure the client to use the proxy, this is what is currently needed.
-
-{% highlight java %}
-public static void main(String[] args) throws Exception {
-    var injector = Guice.createInjector(new ProxyModule());
-    ServiceProxy.init(ProxyType.Dapr, injector);
-
-    var text = new TestClient().hello("Ludwig");
-    System.out.println(text);
 }
 {% endhighlight %}
