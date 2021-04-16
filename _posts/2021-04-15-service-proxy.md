@@ -5,7 +5,7 @@ date:   2021-04-16 11:00:00 +0200
 categories: architecture communication 
 ---
 
-# Service proxy
+# Synchronous communication
 When creating a system, you always need to talk between different components. There are two different types of communication, asynchronous and synchronous and in most systems you will need to use both. In this post I will focus on synchronous communication.
 
 # When to use
@@ -15,6 +15,10 @@ Synchronous communication is used when you want to have a direct response on a r
 
 # Transport agnostic communication
 When we communicate between different components we do not care, codewise, what medium for transportation we're using. If it's in-proc, HTTP or gRPC doesn't matter, our code should look the same. All we care about is that the transportation is fast and reliable. When the technology changes, as it always does, we do not want to change the whole application to support the new technology. We want to change one place where the call is happening and be fine with it. This also gives us the ability to run the application in different ways during development and testing where it could be benificial to keep the number of services running as low as possible to speed up the inner-loop and to save your precious RAM.
+
+
+# Service proxy
+To support this you need a service proxy that does the communication for you whether it's over the wire or in-process. When you then have a single point where all the communication goes through, you have a perfect place where you can add logging, timing, exception handling and everthing else that you expect to have when communicating with other components.
 
 # Implementation
 I have started to build a [small library](https://github.com/lullen/service-proxy) that supports this idea, while not completed it is functional enough to show how it could look like.
@@ -102,3 +106,26 @@ public class TestClient {
     }
 }
 {% endhighlight %}
+
+# In-proccess
+
+If you instead want to communicate in-process all you need to do is to change the configuration. The application that you start should reference the client and the server and it's main method should look something like.
+
+{% highlight java %}
+public static void main(String[] args) throws Exception {
+    var injector = Guice.createInjector(new ProxyModule(), new DaprModule());
+
+    // Setup service proxy to in-proc mode
+    ServiceProxy.init(ProxyType.InProc, injector);
+
+    // Initialize the service loader so the proxy knows how to instantiate the services.  
+    ServiceLoader.init(injector);
+    ServiceLoader.registerServices(List.of(Hello.class));
+
+    var text = new TestClient().hello("Ludwig");
+    System.out.println(text);
+}
+{% endhighlight %}
+
+# Future enhancements
+In the future I want to make it easier to configure the services. Today you need to specify which interfaces you want to host, that should of course be done automatically. I want to be able to switch between different DI containers more easily and lastly I want support more transportation mediums. 
