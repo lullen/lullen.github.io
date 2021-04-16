@@ -1,11 +1,26 @@
 ---
 layout: post
 title:  "Service proxy"
-date:   2021-04-15 22:00:00 +0200
+date:   2021-04-16 11:00:00 +0200
 categories: architecture communication 
 ---
 
+# Service proxy
+When creating a system, you always need to talk between different components. There are two different types of communication, asynchronous and synchronous and in most systems you will need to use both. In this post I will focus on synchronous communication.
 
+# When to use
+Synchronous communication is used when you want to have a direct response on a request. You want to have a direct response when you are calling downwards in your architecture. This is because it makes sense to have a tighter coupling when calling downwards. Think of an web application where the controller is using async communication as in using a message bus to talk with the data access layer. While possible it doesn't make sense as it's in the same unit of work. When calling sideways you should not use sync communication as you are then coupling two different unit of work together. In the picture the solid line is synchronous and the dotted line is asynchronous.
+
+![Sync and async communication](/assets/2021-04/sync-async-communication.jpg)
+
+# Transport agnostic communication
+When we communicate between different components we do not care, codewise, what medium for transportation we're using. If it's in-proc, HTTP or gRPC doesn't matter, our code should look the same. All we care about is that the transportation is fast and reliable. When the technology changes, as it always does, we do not want to change the whole application to support the new technology. We want to change one place where the call is happening and be fine with it. This also gives us the ability to run the application in different ways during development and testing where it could be benificial to keep the number of services running as low as possible to speed up the inner-loop and to save your precious RAM.
+
+# Implementation
+I have started to build a small library that supports this idea, while not completed it is functional enough to show how it could look like.
+
+
+First we define an interface and tag it with the ExposedService attribute. The methods should only have one parameter and it should be an object. The return value should be of type `Response<T>`. What the `Response<T>` does is to give you a way handle exceptions and errors in a uniform way and gives you the opportunity to join calls. Both the parameter and return value must be ProtoBuf objects, this is a small code-smell that could be fixed in a future version. At the moment I have focused on getting the service proxy to work with [Dapr](https://dapr.io) and in-process but could easily be extended to support HTTP or gRPC without Dapr.
 
 {% highlight java %}
 @ExposedService
@@ -14,6 +29,8 @@ public interface Hello {
     Response<RespondResponse> respond(RespondRequest request);
 }
 {% endhighlight %}
+
+Then we should add an implementation to the interface, exactly as you would do with any other interface. 
 
 {% highlight java %}
 public class HelloServiceImpl implements Hello {
@@ -31,9 +48,31 @@ public class HelloServiceImpl implements Hello {
 }
 {% endhighlight %}
 
+To configure the server, this is what is currently needed.
 
-To call this API using the service proxy you call it as shown below.
-What is so great about this? As you can see there are no references to HTTP, gRPC or something similar. The reason for this is that when the technology changes, we do not want to modify our logic, to put it differently, we shouldn't need to know if this is going over HTTP or if it's gRPC or even an in-process call. This also makes it easier during development and test to get the application up and running as you can switch so that all calls are done in-process.
+{% highlight java %}
+public static void main(String[] args) throws IOException, InterruptedException {
+    var injector = Guice.createInjector(new DaprModule(), new ProxyModule());
+    ServiceProxy.init(ProxyType.Dapr, injector);
+
+    final var service = injector.getInstance(DaprServer.class);
+    var port = 5000;
+    service.start(port);
+    service.registerServices(List.of(Hello.class));
+    service.awaitTermination();
+}
+
+// Guice module
+public class DaprModule extends AbstractModule {
+    @Override
+    protected void configure() {
+        bind(Hello.class).to(HelloServiceImpl.class);
+        bind(DaprServer.class);
+    }
+}
+{% endhighlight %}
+
+Now that it is implemented we can finally call it using the code below and as you can see there are no references to HTTP, gRPC or something similar.
 
 {% highlight java %}
 public class TestClient {
@@ -48,5 +87,17 @@ public class TestClient {
             });
         return result.getText();
     }
+}
+{% endhighlight %}
+
+To configure the client to use the proxy, this is what is currently needed.
+
+{% highlight java %}
+public static void main(String[] args) throws Exception {
+    var injector = Guice.createInjector(new ProxyModule());
+    ServiceProxy.init(ProxyType.Dapr, injector);
+
+    var text = new TestClient().hello("Ludwig");
+    System.out.println(text);
 }
 {% endhighlight %}
