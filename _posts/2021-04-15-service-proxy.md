@@ -1,7 +1,7 @@
 ---
 layout: post
 title:  "Service proxy"
-date:   2021-04-16 11:00:00 +0200
+date:   2021-04-15 11:00:00 +0200
 categories: architecture communication 
 ---
 
@@ -14,7 +14,7 @@ Synchronous communication is used when you want to have a direct response on a r
 ![Sync and async communication](/assets/2021-04/sync-async-communication.jpg)
 
 # Transport agnostic communication
-When we communicate between different components we do not care, codewise, what medium for transportation we're using. If it's in-proc, HTTP or gRPC doesn't matter, our code should look the same. All we care about is that the transportation is fast and reliable. When the technology changes, as it always does, we do not want to change the whole application to support the new technology. We want to change one place where the call is happening and be fine with it. This also gives us the ability to run the application in different ways during development and testing where it could be benificial to keep the number of services running as low as possible to speed up the inner-loop and to save your precious RAM.
+When we communicate between different components we do not care codewise what medium for transportation we're using. If it's in-proc, HTTP or gRPC doesn't matter, our code should look the same. All we care about is that the transportation is fast and reliable. When the technology changes, as it always does, we do not want to change the whole application to support the new technology. We want to change one place where the call is happening and be fine with it. This also gives us the ability to run the application in different ways during development and testing where it could be benificial to keep the number of services running as low as possible to speed up the inner-loop and to save your precious RAM.
 
 
 # Service proxy
@@ -97,7 +97,10 @@ public class TestClient {
         var service = ServiceProxy.create(Hello.class);
         var request = HelloRequest.newBuilder().setName(name).build();
         var result = service.sayHello(request)
-            .then((r) -> service.respondToHello(r.result.getText()))
+            .then((r) -> {
+                var request = RespondRequest.newBuilder().setGreeting(r.result.getText()).build();
+                service.respondToHello(request);
+            })
             .onError((error) -> {
                 System.out.println(String.format("error: {} with message {}",error.getStatusCode(), error.getError());
                 return new Response<HelloResponse>(error);
