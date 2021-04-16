@@ -1,7 +1,7 @@
 ---
 layout: post
 title:  "Kubernetes"
-date:   2021-04-16 11:00:00 +0200
+date:   2021-04-30 11:00:00 +0200
 categories: architecture hosting 
 ---
 
