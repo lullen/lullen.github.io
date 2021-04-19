@@ -115,7 +115,7 @@ public class TestClient {
 }
 {% endhighlight %}
 
-# In-proccess
+# In-process
 
 If you instead want to communicate in-process all you need to do is to change the configuration. The application that you start should reference the client and the server and it's main method should look something like.
 
