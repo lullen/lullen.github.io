@@ -29,18 +29,18 @@ Logs:
 - kubectl logs [PodName] [ContainerName]
 
 # Getting started
-[Download k3s](https://github.com/rancher/k3s/releases/latest)
 
 {% highlight bash %}
-sudo k3s server &
-# Kubeconfig is written to /etc/rancher/k3s/k3s.yaml
-sudo k3s kubectl get node
+curl -sfL https://get.k3s.io | sh -
 
-# On a different node run the below. NODE_TOKEN comes from /var/lib/rancher/k3s/server/node-token
-# on your server
-sudo k3s agent --server https://myserver:6443 --token ${NODE_TOKEN}
+# To be able to run kubectl without sudo
+curl -sfL https://get.k3s.io | sh -s - --write-kubeconfig-mode 644
+
+# Check for Ready node, takes maybe 30 seconds
+
+k3s kubectl get node
+
 {% endhighlight %}
-
 
 # Skaffold
 Skaffold is a tool that originated from Google. They describe the tool as "Skaffold handles the workflow for building, pushing and deploying your application, allowing you to focus on what matters most: writing code."

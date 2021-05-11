@@ -1,0 +1,6 @@
+https://jekyllrb.com/
+
+https://jekyllrb.com/docs/installation/ubuntu/
+
+To start:
+bundle exec jekyll serve
